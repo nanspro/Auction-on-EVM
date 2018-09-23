@@ -1,5 +1,5 @@
 var Auction = artifacts.require("code");
 
 module.exports = function(deployer) {
-  deployer.deploy(Auction, 5, 10, 137);
+  deployer.deploy(Auction, 10, 5, 137);
 };
