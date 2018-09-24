@@ -29,11 +29,15 @@ notary_registered: public(int128)
 bidder: public({
     n: int128,
     notary: address,
-    isValid: bool
+    bidder: address,
+    isValid: bool,
+    start_money: wei_value,
+    money_need: wei_value
 }[address])
 
 notary: public({
     bidder: address,
+    notary: address,
     bid_input: int128[10][2],
     bid_value: int128[2],
     n: int128,
@@ -46,11 +50,11 @@ bidder_map: address[int128]
 
 
 
-notary_map: address[int128]
+notary_map: public(address[int128])
 notary_num: public(int128)
 winners: public(int128)
-winner_bidder: address[int128]
-c: int128
+winner_bidder: public(address[int128])
+c: public(int128)
 
 # Create a simple auction with `_bidding_time`
 # seconds bidding time on behalf of the
@@ -67,11 +71,6 @@ def __init__(bidding_time: timedelta, m: int128, Q: int128):
     self.auction_end = self.auction_start + bidding_time 
 
 
-@public
-@payable
-def __default__():
-    send(msg.sender, msg.value)
-    log.Payment(msg.value, msg.sender)
 
 @public
 def register_notaries():
@@ -101,7 +100,7 @@ def assign_notary(sender: address, bid_items: int128[10][2], bid_amount: int128[
     self.notary[self.notary_map[self.notary_num]].bidder = sender
     self.notary[self.notary_map[self.notary_num]].isAssigned = True
     self.bidder[sender].notary = self.notary_map[self.notary_num]
-    self.bidder[msg.sender].isValid = True
+    self.bidder[sender].isValid = True
     self.notary_num = self.assignee(self.notary_num)
 
     self.bidder[sender].n = num_items
@@ -131,8 +130,8 @@ def get_value_notary(j: int128, k: int128, r: int128) -> decimal:
     ni: decimal = convert(self.notary[self.bidder_map[j]].n, 'decimal')
     nj: decimal = convert(self.notary[self.bidder_map[k]].n, 'decimal')
 
-    x: decimal = (ui - uj) / self.sqrt(ni)
-    y: decimal = (vi - vj) / self.sqrt(nj)
+    x: decimal = (ui - uj) 
+    y: decimal = (vi - vj) 
     if r == 1:
         return x
     elif r == 2:
@@ -145,21 +144,21 @@ def which_greater(j: int128, k: int128) -> bool:
 
     Q: decimal = convert(self.q, 'decimal')
 
-    if val1 + val2 < Q / 2.0:
+    if (val1 + val2) % Q < Q / 2.0:
         return False
     return True
 
 @public
 def swap_bidders(j: int128, k: int128):
     temp: address = self.bidder_map[j]
-    self.bidder_map[j] = self.bidder_map[j + 1]
-    self.bidder_map[j + 1] = temp
+    self.bidder_map[j] = self.bidder_map[k]
+    self.bidder_map[k] = temp
 
 
-# @public
-# def get_winners() -> int128:
-#     log.Winners(self.winners)
-#     return self.winners
+@public
+def winners_count() -> int128:
+    log.Winners(self.winners)
+    return self.winners
 
 ##### Quick Sort
 # @public
@@ -216,6 +215,10 @@ def insertionSort():
         self.bidder_map[j+1] = self.bidder_map[key]
 
 @public
+def test_sort() -> address:
+    return self.bidder_map[0]
+
+@public
 def get_winners():
     self.insertionSort()
     
@@ -223,21 +226,21 @@ def get_winners():
 
     for i in range(0,10):
         if i == self.bidder_registered:
-            return
+            break
         
         flag: int128 = 0
         
         for j in range(0,10):
-            if j == self.notary[self.bidder_map[i]].n:
-                return
+            if j == self.winners:
+                break
 
             for k in range(10):
-                if k == self.winners:
-                    return
+                if k == self.notary[self.bidder[self.bidder_map[i]].notary].n:
+                    break
                 for l in range(0,10):
-                    if l == self.notary[self.winner_bidder[k]].n:
-                        return
-                    if (self.notary[self.bidder_map[i]].bid_input[j][0] + self.notary[self.bidder_map[i]].bid_input[j][1]) % self.q == (self.notary[self.winner_bidder[k]].bid_input[l][0] + self.notary[self.winner_bidder[k]].bid_input[l][1]) % self.q:
+                    if l == self.notary[self.bidder[self.winner_bidder[j]].notary].n:
+                        break
+                    if (self.notary[self.bidder[self.bidder_map[i]].notary].bid_input[k][0] + self.notary[self.bidder[self.bidder_map[i]].notary].bid_input[k][1]) % self.q == (self.notary[self.bidder[self.winner_bidder[j]].notary].bid_input[l][0] + self.notary[self.bidder[self.winner_bidder[j]].notary].bid_input[l][1]) % self.q:
                         flag = 1
                         break
                 
@@ -261,12 +264,12 @@ def min_j2(idx: int128, ini: int128) -> bool:
             break
         if i != ini:
             for k in range(0, 10):
-                if k == self.notary[self.winner_bidder[idx]].n:
+                if k == self.notary[self.bidder[self.bidder_map[idx]].notary].n:
                     break
                 for l in range(0, 10):
-                    if l == self.notary[self.winner_bidder[i]].n:
+                    if l == self.notary[self.bidder[self.bidder_map[i]].notary].n:
                         break
-                    if (self.notary[self.winner_bidder[idx]].bid_input[k][0] + self.notary[self.winner_bidder[idx]].bid_input[k][1]) % self.q == (self.notary[self.winner_bidder[i]].bid_input[l][0] + self.notary[self.winner_bidder[i]].bid_input[l][1]) % self.q:
+                    if (self.notary[self.bidder[self.bidder_map[idx]].notary].bid_input[k][0] + self.notary[self.bidder[self.bidder_map[idx]].notary].bid_input[k][1]) % self.q == (self.notary[self.bidder[self.bidder_map[i]].notary].bid_input[l][0] + self.notary[self.bidder[self.bidder_map[i]].notary].bid_input[l][1]) % self.q:
                         flag = 1
                         break
                 
@@ -285,26 +288,27 @@ def min_j2(idx: int128, ini: int128) -> bool:
 def min_j(i: int128) -> int128:
     idx: int128 = 100
     for j in range(0,10):
-        if j == self.winners:
-            break
-
         flag: int128 = 0
-        for k in range(0, 10):
-            if k == self.notary[self.winner_bidder[i]].n:
+        if j >= i:
+            if j == self.bidder_registered:
                 break
-            for l in range(0, 10):
-                if l == self.notary[self.winner_bidder[k]].n:
+
+            for k in range(0, 10):
+                if k == self.notary[self.bidder[self.winner_bidder[i]].notary].n:
                     break
-                if (self.notary[self.winner_bidder[i]].bid_input[k][0] + self.notary[self.winner_bidder[i]].bid_input[k][1]) % self.q == (self.notary[self.winner_bidder[j]].bid_input[l][0] + self.notary[self.winner_bidder[j]].bid_input[l][1]) % self.q:
-                    flag = 1
+                for l in range(0, 10):
+                    if l == self.notary[self.bidder[self.bidder_map[j]].notary].n:
+                        break
+                    if (self.notary[self.bidder[self.winner_bidder[i]].notary].bid_input[k][0] + self.notary[self.bidder[self.winner_bidder[i]].notary].bid_input[k][1]) % self.q != (self.notary[self.bidder[self.bidder_map[j]].notary].bid_input[l][0] + self.notary[self.bidder[self.bidder_map[j]].notary].bid_input[l][1]) % self.q:
+                        flag = 1
+                        break
+                
+                if flag == 1:
                     break
-            
-            if flag == 1:
-                break
         
-        if flag == 0:
-            if self.min_j2(idx, i) == True:
-                idx = j -1
+        if flag == 1:
+            if self.min_j2(j, i) == True:
+                idx = j
                 break
 
     if idx != 100:
@@ -320,10 +324,11 @@ def winners_payment(i: int128) -> decimal:
     if j == -1:
         payment = 0
     else:
-        payment = convert((self.notary[self.winner_bidder[j]].bid_value[0] + self.notary[self.winner_bidder[j]].bid_value[1] ) % self.q, 'decimal')
-        payment = payment * self.sqrt(self.notary[self.winner_bidder[j]].n)
-        payment = payment * self.sqrt(self.notary[self.winner_bidder[i]].n)
+        payment = convert((self.notary[self.bidder[self.winner_bidder[j]].notary].bid_value[0] + self.notary[self.bidder[self.winner_bidder[j]].notary].bid_value[1] ) % self.q, 'decimal')
+        payment = payment / self.sqrt(self.notary[self.bidder[self.winner_bidder[j]].notary].n)
+        payment = payment * self.sqrt(self.notary[self.bidder[self.winner_bidder[i]].notary].n)
     return payment
+
 
 
 
