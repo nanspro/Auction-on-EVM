@@ -348,13 +348,13 @@ contract Auction{
         for(i=0;i<winner_cnt;i++)
         {
             bidders[winners[i]].money-=money[i];
-            winners[i].send(bidders[winners[i]].money);
+            winners[i].transfer(bidders[winners[i]].money);
             bidders[winners[i]].money=0;
         }
         uint len=notary_addresses.length;
         for(i=0;i<len;i++)
         {
-            notary_addresses[i].send(notary_comparison[notary_addresses[i]]);
+            notary_addresses[i].transfer(notary_comparison[notary_addresses[i]]);
             notary_comparison[notary_addresses[i]]=0;
         }
     }
